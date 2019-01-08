@@ -1,4 +1,13 @@
-# Changelog
+#Changedlog Bongo
+## 0.0.1
+
+* Supports basic crud operations
+* Nested models
+* Strong type checking with the help of ejpcmac's Typed_struct 
+
+
+
+# Changelog typed_struct
 
 ## v0.1.4
 

@@ -1,4 +1,4 @@
-# Contributing to TypedStruct
+# Contributing to Bongo
 
 This project uses [git-flow](https://github.com/petervanderdoes/gitflow-avh).
 The `master` branch is reserved to releases: the development process occurs on
@@ -12,12 +12,12 @@ The `master` branch is reserved to releases: the development process occurs on
 
 2. Clone your fork to a local repository:
 
-        $ git clone https://github.com/you/typed_struct.git
-        $ cd typed_struct
+        $ git clone https://github.com/you/bongo.git
+        $ cd bongo
 
 3. Add the main repository as a remote:
 
-        $ git remote add upstream https://github.com/ejpcmac/typed_struct.git
+        $ git remote add upstream https://github.com/bombinatetech/bongo.git
 
 4. Setup `git-flow`:
 
@@ -31,7 +31,7 @@ You should now be on `develop`.
 
 2. Fetch the project dependencies and build the project:
 
-        $ cd typed_struct
+        $ cd bongo
         $ mix do deps.get, compile
 
 3. Launch the tests:

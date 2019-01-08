@@ -1,12 +1,12 @@
-defmodule TypedStruct.MixProject do
+defmodule Bongo.MixProject do
   use Mix.Project
 
-  @version "0.1.4"
-  @repo_url "https://github.com/ejpcmac/typed_struct"
+  @version "0.0.1"
+  @repo_url "https://github.com/bombinatetech/typed_struct"
 
   def project do
     [
-      app: :typed_struct,
+      app: :bongo,
       version: @version,
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
@@ -18,18 +18,16 @@ defmodule TypedStruct.MixProject do
       preferred_cli_env: cli_env(),
 
       # Docs
-      name: "TypedStruct",
+      name: "Bongo",
       docs: [
-        main: "TypedStruct",
+        main: "Bongo",
         source_url: @repo_url,
         source_ref: "v#{@version}"
       ],
 
       # Package
       package: package(),
-      description:
-        "A library for defining structs with a type without writing " <>
-          "boilerplate code."
+      description: "A simple odm for mongodb written in elixir"
     ]
   end
 
