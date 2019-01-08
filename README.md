@@ -2,6 +2,12 @@
 
 Elegant mongodb object modeling for elixir
 
+add to deps
+```elixir
+      {:bongo, git: "https://github.com/bombinatetech/bongo"},
+      {:mongodb}
+```
+
 Usage
 ```elixir
 use Bongo.Model,
