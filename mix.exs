@@ -41,6 +41,7 @@ defmodule Bongo.MixProject do
       {:ex_unit_notifier, ">= 0.0.0", only: :test, runtime: false},
 
       # Project dependencies
+      {:mongodb, ">= 0.0.0"},
 
       # Documentation dependencies
       {:ex_doc, "~> 0.19", only: :docs, runtime: false}
