@@ -654,54 +654,40 @@ defmodule Bongo.Model do
   end
 
   def convert_in({:|, [], [type, nil]}, value) do
-    case value do
-      nil -> nil
-      _ -> convert_in(type, value)
-    end
+    nill(value, convert_in(type, value))
   end
 
   def convert_in(
         {{:., line, [{:__aliases__, _aliases, type}, :t]}, line, []},
         value
       ) do
-    case value do
-      nil ->
-        nil
-
-      _ ->
-        convert_in(
-          Macro.expand_once({:__aliases__, [alias: false], type}, __ENV__),
-          value
-        )
-    end
+    nill(
+      value,
+      convert_in(
+        Macro.expand_once({:__aliases__, [alias: false], type}, __ENV__),
+        value
+      )
+    )
   end
 
   def convert_in(
         [{{:., line, [{:__aliases__, _aliases, type}, :t]}, line, []}],
         value
-      ) do
-    case value do
-      nil ->
-        nil
-
-      _ ->
-        case is_list(value) do
-          true ->
-            Enum.map(
-              value,
-              &convert_in(
-                Macro.expand_once(
-                  {:__aliases__, [alias: false], type},
-                  __ENV__
-                ),
-                &1
-              )
-            )
-
-          false ->
-            raise "should be an array"
-        end
-    end
+      )
+      when is_list(value) do
+    nill(
+      value,
+      Enum.map(
+        value,
+        &convert_in(
+          Macro.expand_once(
+            {:__aliases__, [alias: false], type},
+            __ENV__
+          ),
+          &1
+        )
+      )
+    )
   end
 
   def convert_in(_, [model, func, args] = _) do
@@ -737,80 +723,83 @@ defmodule Bongo.Model do
     |> Enum.into(%{})
   end
 
+  def convert_out(nil, value) do
+    log_and_return(value, "This model contains an unknown field type")
+  end
+
   def convert_out({:|, [], [type, nil]}, value) do
-    case value do
-      nil -> nil
-      _ -> convert_out(type, value)
-    end
+    nill(value, convert_out(type, value))
   end
 
   def convert_out(
         {{:., line, [{:__aliases__, _aliases, type}, :t]}, line, []},
         value
       ) do
-    case value do
-      nil ->
-        nil
-
-      _ ->
-        convert_out(
-          Macro.expand_once({:__aliases__, [alias: false], type}, __ENV__),
-          value
-        )
-    end
+    nill(
+      value,
+      convert_out(
+        Macro.expand_once({:__aliases__, [alias: false], type}, __ENV__),
+        value
+      )
+    )
   end
 
   def convert_out(
         [{{:., line, [{:__aliases__, _aliases, type}, :t]}, line, []}],
         value
-      ) do
-    case value do
-      nil ->
-        nil
-
-      _ ->
-        case is_list(value) do
-          true ->
-            Enum.map(
-              value,
-              &convert_out(
-                Macro.expand_once(
-                  {:__aliases__, [alias: false], type},
-                  __ENV__
-                ),
-                &1
-              )
-            )
-
-          false ->
-            raise "should be an array"
-        end
-    end
+      )
+      when is_list(value) do
+    nill(
+      value,
+      Enum.map(
+        value,
+        &convert_out(
+          Macro.expand_once(
+            {:__aliases__, [alias: false], type},
+            __ENV__
+          ),
+          &1
+        )
+      )
+    )
   end
 
   def convert_out(String, %BSON.ObjectId{} = value) do
-    BSON.ObjectId.encode!(value)
+    nill(value, BSON.ObjectId.encode!(value))
   end
 
   def convert_out(String, value) do
-    to_string(value)
+    nill(value, to_string(value))
   end
 
   def convert_out(Integer, value) do
-    value
+    nill(value, value)
   end
 
   def convert_out(BSON.ObjectId, value) do
-    BSON.ObjectId.decode!(value)
+    nill(value, BSON.ObjectId.decode!(value))
+  end
+
+  def convert_out(nil, value) do
+    log_and_return(value, "This model contains an unknown field type")
   end
 
   def convert_out(module, value) do
-    module.structize(value)
+    nill(value, module.structize(value))
   end
 
   def convert_out(item, out_types, defaults) do
     Enum.map(item, fn {k, v} ->
       {k, convert_out(out_types[String.to_atom(k)], v)}
     end)
+  end
+
+  defmacrop nill(value, block) do
+    quote location: :keep do
+      case unquote(value) do
+        nil -> nil
+        _ -> unquote(block)
+      end
+    end
   end
 end
