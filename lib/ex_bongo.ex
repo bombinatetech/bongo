@@ -276,7 +276,7 @@ defmodule Bongo.Model do
   """
 
   def log_and_return(o, label \\ "") do
-    IO.inspect(o, label: label)
+    IO.inspect(inspect(o), label: label)
     o
   end
 
@@ -621,6 +621,15 @@ defmodule Bongo.Model do
     end
   end
 
+  defmacrop nill(value, block) do
+    quote location: :keep do
+      case unquote(value) do
+        nil -> nil
+        _ -> unquote(block)
+      end
+    end
+  end
+
   ##
   ## Helpers
   ##
@@ -642,6 +651,10 @@ defmodule Bongo.Model do
         end
       end
     )
+  end
+
+  def filter_nils(nil) do
+    nil
   end
 
   def filter_nils(keyword) when is_list(keyword) do
@@ -694,16 +707,28 @@ defmodule Bongo.Model do
     apply(model, func, args)
   end
 
-  def convert_in(String, value) do
+  def convert_in([type], value) when is_list(value) and is_atom(type) do
+    nill(value, Enum.map(value, &convert_in(type, &1)))
+  end
+
+  def convert_in(:string, value) do
     value
   end
 
-  def convert_in(Integer, value) do
+  def convert_in(:integer, value) do
     value
   end
 
-  def convert_in(BSON.ObjectId, value) do
+  def convert_in(:objectId, value) do
     BSON.ObjectId.decode!(value)
+  end
+
+  def convert_in(:boolean, value) do
+    value
+  end
+
+  def convert_in(nil, value) do
+    log_and_return(value, "This model contains an unknown field *in* type")
   end
 
   def convert_in(module, value) do
@@ -723,9 +748,7 @@ defmodule Bongo.Model do
     |> Enum.into(%{})
   end
 
-  def convert_out(nil, value) do
-    log_and_return(value, "This model contains an unknown field type")
-  end
+  # data out converters
 
   def convert_out({:|, [], [type, nil]}, value) do
     nill(value, convert_out(type, value))
@@ -764,24 +787,35 @@ defmodule Bongo.Model do
     )
   end
 
-  def convert_out(String, %BSON.ObjectId{} = value) do
+  def convert_out([type], value) when is_list(value) do
+    nill(value, Enum.map(value, &convert_out(type, &1)))
+  end
+
+  def convert_out(:string, %BSON.ObjectId{} = value) do
     nill(value, BSON.ObjectId.encode!(value))
   end
 
-  def convert_out(String, value) do
+  def convert_out(:string, value) do
     nill(value, to_string(value))
   end
 
-  def convert_out(Integer, value) do
+  def convert_out(:integer, value) do
     nill(value, value)
   end
 
-  def convert_out(BSON.ObjectId, value) do
+  def convert_out(:objectId, value) do
     nill(value, BSON.ObjectId.decode!(value))
   end
 
+  def convert_out(:boolean, value) do
+    case is_boolean(value) do
+      true -> value
+      false -> nil
+    end
+  end
+
   def convert_out(nil, value) do
-    log_and_return(value, "This model contains an unknown field type")
+    log_and_return(value, "This model contains an unknown field *out* type ")
   end
 
   def convert_out(module, value) do
@@ -790,16 +824,13 @@ defmodule Bongo.Model do
 
   def convert_out(item, out_types, defaults) do
     Enum.map(item, fn {k, v} ->
-      {k, convert_out(out_types[String.to_atom(k)], v)}
-    end)
-  end
+      case Keyword.has_key?(out_types, String.to_atom(k)) do
+        true ->
+          {k, convert_out(out_types[String.to_atom(k)], v)}
 
-  defmacrop nill(value, block) do
-    quote location: :keep do
-      case unquote(value) do
-        nil -> nil
-        _ -> unquote(block)
+        false ->
+          {k, :blackhole}
       end
-    end
+    end)
   end
 end
