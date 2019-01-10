@@ -19,11 +19,15 @@ defmodule Bongo.Utilities do
   end
 
   def filter_nils(keyword) when is_list(keyword) do
-    Enum.reject(keyword, fn {_key, value} -> is_nil(value) end)
+    Enum.reject(keyword, fn {_key, value} ->
+      is_nil(value) or value == :blackhole
+    end)
   end
 
   def filter_nils(map) when is_map(map) do
-    Enum.reject(map, fn {_key, value} -> is_nil(value) end)
+    Enum.reject(map, fn {_key, value} ->
+      is_nil(value) or value == :blackhole
+    end)
     |> Enum.into(%{})
   end
 

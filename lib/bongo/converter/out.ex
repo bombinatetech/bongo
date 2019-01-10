@@ -81,9 +81,11 @@ defmodule Bongo.Converter.Out do
 
   def from(item, out_types, _defaults, lenient) do
     Enum.map(item, fn {k, v} ->
-      case Keyword.has_key?(out_types, String.to_atom(k)) do
+      atom = String.to_atom(to_string(k))
+
+      case Keyword.has_key?(out_types, atom) do
         true ->
-          {k, convert_out(v, out_types[String.to_atom(k)], lenient)}
+          {k, convert_out(v, out_types[atom], lenient)}
 
         false ->
           {k, :blackhole}
