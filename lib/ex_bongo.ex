@@ -500,7 +500,7 @@ defmodule Bongo.Model do
         query_map
         |> Map.to_list()
         |> Enum.map(fn {k, v} ->
-          %{k => convert_type(get_input_type_for_key(k, model), v)}
+          %{k => normalize(v)}
         end)
         |> Enum.reduce(%{}, fn item, acc -> Map.merge(acc, item) end)
       end
