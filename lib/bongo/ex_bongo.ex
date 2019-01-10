@@ -275,11 +275,6 @@ defmodule Bongo.Model do
               }
   """
 
-  def log_and_return(o, label \\ "") do
-    IO.inspect(inspect(o), label: label)
-    o
-  end
-
   @doc false
   defmacro __using__(opts) do
     quote location: :keep do
@@ -297,19 +292,10 @@ defmodule Bongo.Model do
         unquote(opts[:collection_name])
       )
 
-      import Bongo.Model,
-        only: [
-          model: 1,
-          model: 2,
-          filter_nils: 1,
-          convert_in: 2,
-          convert_in: 3,
-          convert_out: 2,
-          convert_out: 3,
-          log_and_return: 1,
-          log_and_return: 2,
-          to_struct: 2
-        ]
+      import Bongo.Converter.In, only: [into: 3]
+      import Bongo.Converter.Out, only: [from: 4]
+      import Bongo.Utilities, only: [filter_nils: 1, to_struct: 2]
+      import Bongo.Model, only: [model: 1, model: 2]
 
       import Bongo.Filters,
         only: [
@@ -329,16 +315,19 @@ defmodule Bongo.Model do
         Enum.map(value, &normalize(&1))
       end
 
-      def structize(value) when is_list(value) do
-        Enum.map(value, &structize(&1))
+      def structize(value, lenient) when is_list(value) do
+        Enum.map(value, &structize(&1, lenient))
       end
 
       def normalize(value) do
         case is_valid(value) do
           true ->
             value
-            |> convert_in(__MODULE__.__in_types__(), __MODULE__.__defaults__())
-            |> filter_nils
+            |> into(
+              __MODULE__.__in_types__(),
+              __MODULE__.__defaults__()
+            )
+            |> filter_nils()
             |> Map.merge(
               case Enum.member?(__MODULE__.__keys__(), :_id) do
                 true -> %{_id: Mongo.object_id()}
@@ -351,14 +340,21 @@ defmodule Bongo.Model do
         end
       end
 
-      def structize(value) do
-        to_struct(
-          __MODULE__,
+      def structize(value, lenient) do
+        resp =
           value
-          |> convert_out(__MODULE__.__out_types__(), __MODULE__.__defaults__())
-          |> filter_nils
+          |> from(
+            __MODULE__.__out_types__(),
+            __MODULE__.__defaults__(),
+            lenient
+          )
+          |> filter_nils()
           |> Map.new()
-        )
+
+        case lenient do
+          true -> resp
+          false -> to_struct(__MODULE__, resp)
+        end
       end
 
       defp add_many!(obj, opts \\ []) do
@@ -380,7 +376,7 @@ defmodule Bongo.Model do
 
         case item do
           nil -> nil
-          _ -> structize(item)
+          _ -> structize(item, false)
         end
       end
 
@@ -389,8 +385,24 @@ defmodule Bongo.Model do
 
         case item do
           nil -> nil
-          _ -> structize(item)
+          _ -> structize(item, false)
         end
+      end
+
+      defp update!(query, update, opts \\ []) do
+        update_raw!(
+          structize(query, true),
+          Enum.map(update, fn {k, v} -> {k, structize(v, true)} end),
+          opts
+        )
+      end
+
+      defp update_many!(query, update, opts \\ []) do
+        update_many_raw!(
+          structize(query, true),
+          Enum.map(update, fn {k, v} -> {k, structize(v, true)} end),
+          opts
+        )
       end
 
       defp remove!(query, opts \\ []) do
@@ -621,15 +633,6 @@ defmodule Bongo.Model do
     end
   end
 
-  defmacrop nill(value, block) do
-    quote location: :keep do
-      case unquote(value) do
-        nil -> nil
-        _ -> unquote(block)
-      end
-    end
-  end
-
   ##
   ## Helpers
   ##
@@ -637,200 +640,4 @@ defmodule Bongo.Model do
   # Makes the type nullable if the key is not enforced.
   defp type_for(type, false), do: type
   defp type_for(type, _), do: quote(do: unquote(type) | nil)
-
-  def to_struct(kind, attrs) do
-    struct = struct(kind)
-
-    Enum.reduce(
-      Map.to_list(struct),
-      struct,
-      fn {k, _}, acc ->
-        case Map.fetch(attrs, Atom.to_string(k)) do
-          {:ok, v} -> %{acc | k => v}
-          :error -> acc
-        end
-      end
-    )
-  end
-
-  def filter_nils(nil) do
-    nil
-  end
-
-  def filter_nils(keyword) when is_list(keyword) do
-    Enum.reject(keyword, fn {_key, value} -> is_nil(value) end)
-  end
-
-  def filter_nils(map) when is_map(map) do
-    Enum.reject(map, fn {_key, value} -> is_nil(value) end)
-    |> Enum.into(%{})
-  end
-
-  def convert_in({:|, [], [type, nil]}, value) do
-    nill(value, convert_in(type, value))
-  end
-
-  def convert_in(
-        {{:., line, [{:__aliases__, _aliases, type}, :t]}, line, []},
-        value
-      ) do
-    nill(
-      value,
-      convert_in(
-        Macro.expand_once({:__aliases__, [alias: false], type}, __ENV__),
-        value
-      )
-    )
-  end
-
-  def convert_in(
-        [{{:., line, [{:__aliases__, _aliases, type}, :t]}, line, []}],
-        value
-      )
-      when is_list(value) do
-    nill(
-      value,
-      Enum.map(
-        value,
-        &convert_in(
-          Macro.expand_once(
-            {:__aliases__, [alias: false], type},
-            __ENV__
-          ),
-          &1
-        )
-      )
-    )
-  end
-
-  def convert_in(_, [model, func, args] = _) do
-    apply(model, func, args)
-  end
-
-  def convert_in([type], value) when is_list(value) and is_atom(type) do
-    nill(value, Enum.map(value, &convert_in(type, &1)))
-  end
-
-  def convert_in(:string, value) do
-    value
-  end
-
-  def convert_in(:integer, value) do
-    value
-  end
-
-  def convert_in(:objectId, value) do
-    BSON.ObjectId.decode!(value)
-  end
-
-  def convert_in(:boolean, value) do
-    value
-  end
-
-  def convert_in(nil, value) do
-    log_and_return(value, "This model contains an unknown field *in* type")
-  end
-
-  def convert_in(module, value) do
-    module.normalize(value)
-  end
-
-  def convert_in(item, in_types, defaults) do
-    Enum.map(
-      in_types,
-      fn {k, v} ->
-        {
-          k,
-          convert_in(v, Map.get(item, k, Keyword.get(defaults, k)))
-        }
-      end
-    )
-    |> Enum.into(%{})
-  end
-
-  # data out converters
-
-  def convert_out({:|, [], [type, nil]}, value) do
-    nill(value, convert_out(type, value))
-  end
-
-  def convert_out(
-        {{:., line, [{:__aliases__, _aliases, type}, :t]}, line, []},
-        value
-      ) do
-    nill(
-      value,
-      convert_out(
-        Macro.expand_once({:__aliases__, [alias: false], type}, __ENV__),
-        value
-      )
-    )
-  end
-
-  def convert_out(
-        [{{:., line, [{:__aliases__, _aliases, type}, :t]}, line, []}],
-        value
-      )
-      when is_list(value) do
-    nill(
-      value,
-      Enum.map(
-        value,
-        &convert_out(
-          Macro.expand_once(
-            {:__aliases__, [alias: false], type},
-            __ENV__
-          ),
-          &1
-        )
-      )
-    )
-  end
-
-  def convert_out([type], value) when is_list(value) do
-    nill(value, Enum.map(value, &convert_out(type, &1)))
-  end
-
-  def convert_out(:string, %BSON.ObjectId{} = value) do
-    nill(value, BSON.ObjectId.encode!(value))
-  end
-
-  def convert_out(:string, value) do
-    nill(value, to_string(value))
-  end
-
-  def convert_out(:integer, value) do
-    nill(value, value)
-  end
-
-  def convert_out(:objectId, value) do
-    nill(value, BSON.ObjectId.decode!(value))
-  end
-
-  def convert_out(:boolean, value) do
-    case is_boolean(value) do
-      true -> value
-      false -> nil
-    end
-  end
-
-  def convert_out(nil, value) do
-    log_and_return(value, "This model contains an unknown field *out* type ")
-  end
-
-  def convert_out(module, value) do
-    nill(value, module.structize(value))
-  end
-
-  def convert_out(item, out_types, defaults) do
-    Enum.map(item, fn {k, v} ->
-      case Keyword.has_key?(out_types, String.to_atom(k)) do
-        true ->
-          {k, convert_out(out_types[String.to_atom(k)], v)}
-
-        false ->
-          {k, :blackhole}
-      end
-    end)
-  end
 end
