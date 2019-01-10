@@ -45,7 +45,7 @@ defmodule Bongo.Converter.Out do
   end
 
   def convert_out(value, [type], lenient) when is_list(value) do
-    nill(value, Enum.map(value, &convert_out(type, &1, lenient)))
+    nill(value, Enum.map(value, &convert_out(&1, type, lenient)))
   end
 
   def convert_out(%BSON.ObjectId{} = value, :string, _lenient) do
