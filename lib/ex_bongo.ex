@@ -376,7 +376,10 @@ defmodule Bongo.Model do
       end
 
       defp find_one(query \\ %{}, opts \\ []) do
-        item = find_one_raw(query, opts)
+        item = 
+        query
+        |> convert_query_to_model_types(__MODULE__)
+        |> find_one_raw(opts)
 
         case item do
           nil -> nil
@@ -385,7 +388,10 @@ defmodule Bongo.Model do
       end
 
       defp find(query \\ %{}, opts \\ []) do
-        item = find_raw(query, opts)
+        item = 
+        query
+        |> convert_query_to_model_types(__MODULE__)
+        |> find_raw(opts)
 
         case item do
           nil -> nil
@@ -444,6 +450,12 @@ defmodule Bongo.Model do
         |> Enum.to_list()
       end
 
+      def update_many(query, update, opts \\ []) do
+        query
+        |> convert_query_to_model_types(__MODULE__)
+        |> update_many_raw!(update, opts)
+      end
+
       defp update_many_raw!(query, update, opts \\ []) do
         Mongo.update_many!(
           @connection,
@@ -453,6 +465,12 @@ defmodule Bongo.Model do
           @default_opts
           |> Keyword.merge(opts)
         )
+      end
+
+      def update(query, update, opts \\ []) do
+        query
+        |> convert_query_to_model_types(__MODULE__)
+        |> update_raw!(update, opts)
       end
 
       defp update_raw!(query, update, opts \\ []) do
@@ -476,6 +494,30 @@ defmodule Bongo.Model do
 
       def is_valid(_) do
         false
+      end
+
+      defp convert_query_to_model_types(query_map, model) do
+        query_map
+        |> Map.to_list()
+        |> Enum.map(fn {k, v} ->
+          %{k => convert_type(get_input_type_for_key(k, model), v)}
+        end)
+        |> Enum.reduce(%{}, fn item, acc -> Map.merge(acc, item) end)
+      end
+    
+       defp get_input_type_for_key(key, model) do
+        {_k, v} = Enum.find(model.__in_types__, fn {k, _v} -> k == strip_child_key(key) end)
+        Macro.to_string(v)
+      end
+    
+       defp strip_child_key(key) do
+        case is_atom(key) do
+          true -> Atom.to_string(key)
+          _ -> key
+        end
+        |> String.split(".")
+        |> List.last()
+        |> String.to_atom()
       end
     end
   end
