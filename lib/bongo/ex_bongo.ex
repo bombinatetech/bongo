@@ -294,7 +294,7 @@ defmodule Bongo.Model do
 
       import Bongo.Converter.In, only: [into: 3]
       import Bongo.Converter.Out, only: [from: 4]
-      import Bongo.Utilities, only: [filter_nils: 1, to_struct: 2]
+      import Bongo.Utilities, only: [filter_nils: 1, to_struct: 2, nill: 2]
       import Bongo.Model, only: [model: 1, model: 2]
 
       import Bongo.Filters,
@@ -372,21 +372,13 @@ defmodule Bongo.Model do
       end
 
       defp find_one(query \\ %{}, opts \\ []) do
-        item = find_one_raw(query, opts)
-
-        case item do
-          nil -> nil
-          _ -> structize(item, false)
-        end
+        item = find_one_raw(structize(query, true), opts)
+        nill(item, structize(item, false))
       end
 
       defp find(query \\ %{}, opts \\ []) do
-        item = find_raw(query, opts)
-
-        case item do
-          nil -> nil
-          _ -> structize(item, false)
-        end
+        item = find_raw(structize(query, true), opts)
+        nill(item, structize(item, false))
       end
 
       defp update!(query, update, opts \\ []) do
