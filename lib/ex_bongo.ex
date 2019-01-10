@@ -376,7 +376,10 @@ defmodule Bongo.Model do
       end
 
       defp find_one(query \\ %{}, opts \\ []) do
-        item = find_one_raw(query, opts)
+        item = 
+        query
+        |> normalize()
+        |> find_one_raw(opts)
 
         case item do
           nil -> nil
@@ -385,7 +388,10 @@ defmodule Bongo.Model do
       end
 
       defp find(query \\ %{}, opts \\ []) do
-        item = find_raw(query, opts)
+        item = 
+        query
+        |> normalize()
+        |> find_raw(opts)
 
         case item do
           nil -> nil
@@ -444,6 +450,12 @@ defmodule Bongo.Model do
         |> Enum.to_list()
       end
 
+      def update_many(query, update, opts \\ []) do
+        query
+        |> normalize()
+        |> update_many_raw!(update, opts)
+      end
+
       defp update_many_raw!(query, update, opts \\ []) do
         Mongo.update_many!(
           @connection,
@@ -453,6 +465,12 @@ defmodule Bongo.Model do
           @default_opts
           |> Keyword.merge(opts)
         )
+      end
+
+      def update(query, update, opts \\ []) do
+        query
+        |> normalize()
+        |> update_raw!(update, opts)
       end
 
       defp update_raw!(query, update, opts \\ []) do
