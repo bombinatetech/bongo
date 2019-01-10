@@ -352,7 +352,7 @@ defmodule Bongo.Model do
           |> Map.new()
 
         case lenient do
-          true -> resp
+          true -> Map.merge(value, resp)
           false -> to_struct(__MODULE__, resp)
         end
       end

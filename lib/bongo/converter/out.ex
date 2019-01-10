@@ -80,20 +80,14 @@ defmodule Bongo.Converter.Out do
   end
 
   def from(item, out_types, _defaults, lenient) do
-    Map.merge(
-      case lenient do
-        true -> item
-        false -> %{}
-      end,
-      Enum.map(item, fn {k, v} ->
-        case Keyword.has_key?(out_types, String.to_atom(k)) do
-          true ->
-            {k, convert_out(v, out_types[String.to_atom(k)], lenient)}
+    Enum.map(item, fn {k, v} ->
+      case Keyword.has_key?(out_types, String.to_atom(k)) do
+        true ->
+          {k, convert_out(v, out_types[String.to_atom(k)], lenient)}
 
-          false ->
-            {k, :blackhole}
-        end
-      end)
-    )
+        false ->
+          {k, :blackhole}
+      end
+    end)
   end
 end
