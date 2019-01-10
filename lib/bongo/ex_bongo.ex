@@ -292,48 +292,55 @@ defmodule Bongo.Model do
         unquote(opts[:collection_name])
       )
 
-      import Bongo.Converter.In, only: [into: 3]
+      import Bongo.Converter.In, only: [into: 4]
       import Bongo.Converter.Out, only: [from: 4]
       import Bongo.Utilities, only: [filter_nils: 1, to_struct: 2, nill: 2]
       import Bongo.Model, only: [model: 1, model: 2]
 
       import Bongo.Filters,
-        only: [
-          sort: 1,
-          sort: 2,
-          project: 1,
-          project: 2,
-          limit: 1,
-          limit: 2,
-          skip: 1,
-          skip: 2,
-          upsert: 1,
-          upsert: 2
-        ]
+             only: [
+               sort: 1,
+               sort: 2,
+               project: 1,
+               project: 2,
+               limit: 1,
+               limit: 2,
+               skip: 1,
+               skip: 2,
+               upsert: 1,
+               upsert: 2
+             ]
 
-      def normalize(value) when is_list(value) do
-        Enum.map(value, &normalize(&1))
+      def normalize(value, lenient) when is_list(value) do
+        Enum.map(value, &normalize(&1, lenient))
       end
 
       def structize(value, lenient) when is_list(value) do
         Enum.map(value, &structize(&1, lenient))
       end
 
-      def normalize(value) do
-        case is_valid(value) do
+      def normalize(value, lenient) do
+        case lenient or is_valid(value) do
           true ->
-            value
-            |> into(
-              __MODULE__.__in_types__(),
-              __MODULE__.__defaults__()
-            )
-            |> filter_nils()
-            |> Map.merge(
-              case Enum.member?(__MODULE__.__keys__(), :_id) do
-                true -> %{_id: Mongo.object_id()}
-                false -> %{}
-              end
-            )
+            resp =
+              value
+              |> into(
+                   __MODULE__.__in_types__(),
+                   __MODULE__.__defaults__(),
+                   lenient
+                 )
+              |> filter_nils()
+
+            case lenient do
+              true ->
+                Map.merge(value, resp)
+
+              false ->
+                case Enum.member?(__MODULE__.__keys__(), :_id) do
+                  true -> Map.merge(%{_id: Mongo.object_id()}, resp)
+                  false -> resp
+                end
+            end
 
           false ->
             raise "Not of correct type"
@@ -344,10 +351,10 @@ defmodule Bongo.Model do
         resp =
           value
           |> from(
-            __MODULE__.__out_types__(),
-            __MODULE__.__defaults__(),
-            lenient
-          )
+               __MODULE__.__out_types__(),
+               __MODULE__.__defaults__(),
+               lenient
+             )
           |> filter_nils()
           |> Map.new()
 
@@ -359,40 +366,40 @@ defmodule Bongo.Model do
 
       defp add_many!(obj, opts \\ []) do
         case is_valid(obj) do
-          true -> add_many_raw!(normalize(obj), opts)
+          true -> add_many_raw!(normalize(obj, false), opts)
           false -> raise "Not a valid obj"
         end
       end
 
       defp add!(obj, opts \\ []) do
         case is_valid(obj) do
-          true -> add_raw!(normalize(obj), opts)
+          true -> add_raw!(normalize(obj, false), opts)
           false -> raise "Not a valid obj"
         end
       end
 
       defp find_one(query \\ %{}, opts \\ []) do
-        item = find_one_raw(structize(query, true), opts)
+        item = find_one_raw(normalize(query, true), opts)
         nill(item, structize(item, false))
       end
 
       defp find(query \\ %{}, opts \\ []) do
-        item = find_raw(structize(query, true), opts)
+        item = find_raw(normalize(query, true), opts)
         nill(item, structize(item, false))
       end
 
       defp update!(query, update, opts \\ []) do
         update_raw!(
-          structize(query, true),
-          Enum.map(update, fn {k, v} -> {k, structize(v, true)} end),
+          normalize(query, true),
+          Enum.map(update, fn {k, v} -> {k, normalize(v, true)} end),
           opts
         )
       end
 
       defp update_many!(query, update, opts \\ []) do
         update_many_raw!(
-          structize(query, true),
-          Enum.map(update, fn {k, v} -> {k, structize(v, true)} end),
+          normalize(query, true),
+          Enum.map(update, fn {k, v} -> {k, normalize(v, true)} end),
           opts
         )
       end
@@ -540,10 +547,10 @@ defmodule Bongo.Model do
       Bongo.Model.__type__(List.flatten([@in_types, @out_types]), unquote(opts))
 
       def __keys__,
-        do:
-          @fields
-          |> Keyword.keys()
-          |> Enum.reverse()
+          do:
+            @fields
+            |> Keyword.keys()
+            |> Enum.reverse()
 
       def __defaults__, do: Enum.reverse(@fields)
       def __in_types__, do: Enum.reverse(@in_types)
@@ -593,8 +600,8 @@ defmodule Bongo.Model do
 
     enforce? =
       if is_nil(opts[:enforce]),
-        do: Module.get_attribute(mod, :enforce?) && is_nil(default),
-        else: !!opts[:enforce]
+         do: Module.get_attribute(mod, :enforce?) && is_nil(default),
+         else: !!opts[:enforce]
 
     nullable? = !default && !enforce?
 
