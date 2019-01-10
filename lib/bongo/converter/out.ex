@@ -4,7 +4,7 @@ defmodule Bongo.Converter.Out do
   import Bongo.Utilities, only: [nill: 2, log_and_return: 1, log_and_return: 2]
 
   def convert_out(value, {:|, [], [type, nil]}, lenient) do
-    nill(value, convert_out(type, value, lenient))
+    nill(value, convert_out(value, type, lenient))
   end
 
   def convert_out(
