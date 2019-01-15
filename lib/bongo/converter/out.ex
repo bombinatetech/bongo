@@ -1,11 +1,11 @@
 defmodule Bongo.Converter.Out do
-  import Bongo.Utilities, only: [nill: 2, log_and_return: 1, log_and_return: 2]
+  import Bongo.Utilities, only: [log_and_return: 2]
 
-  def convert_out(nil, type, lenient) do
+  def convert_out(nil, _type, _lenient) do
     nil
   end
 
-  def convert_out(value, nil, lenient) do
+  def convert_out(value, nil, _lenient) do
     log_and_return(value, "This model contains an unknown field *out* type")
   end
 
@@ -30,15 +30,15 @@ defmodule Bongo.Converter.Out do
     Enum.map(value, &convert_out(&1, type, lenient))
   end
 
-  def convert_in(value, type, lenient) when is_map(value) do
+  def convert_out(value, type, lenient) when is_list(value) do
     value
-    |> Enum.map(fn {k, v} -> {k, convert_in(value, type, lenient)} end)
-    |> Map.new()
+    |> Enum.map(fn {k, v} -> {k, convert_out(v, type, lenient)} end)
   end
 
-  def convert_in(value, type, lenient) when is_list(value) do
+  def convert_out(value, type, lenient) when is_map(value) do
     value
-    |> Enum.map(fn {k, v} -> {k, convert_in(value, type, lenient)} end)
+    |> Enum.map(fn {k, v} -> {k, convert_out(v, type, lenient)} end)
+    |> Map.new()
   end
 
   def convert_out(%BSON.ObjectId{} = value, :string, _lenient) do

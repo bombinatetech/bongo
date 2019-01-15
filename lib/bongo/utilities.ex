@@ -34,14 +34,8 @@ defmodule Bongo.Utilities do
   defmacro nill(value, block, lenient \\ false) do
     quote location: :keep do
       case unquote(value) do
-        nil ->
-          nil
-
-        _ ->
-          case lenient do
-            true -> value
-            false -> unquote(block)
-          end
+        nil -> nil
+        _ -> unquote(block)
       end
     end
   end
