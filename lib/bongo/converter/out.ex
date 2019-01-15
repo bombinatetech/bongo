@@ -30,16 +30,16 @@ defmodule Bongo.Converter.Out do
     Enum.map(value, &convert_out(&1, type, lenient))
   end
 
-  def convert_out(value, type, lenient) when is_list(value) do
-    value
-    |> Enum.map(fn {k, v} -> {k, convert_out(v, type, lenient)} end)
-  end
-
-  def convert_out(value, type, lenient) when is_map(value) do
-    value
-    |> Enum.map(fn {k, v} -> {k, convert_out(v, type, lenient)} end)
-    |> Map.new()
-  end
+  #  def convert_out(value, type, lenient) when is_list(value) do
+  #    value
+  #    |> Enum.map(fn {k, v} -> {k, convert_out(v, type, lenient)} end)
+  #  end
+  #
+  #  def convert_out(value, type, lenient) when is_map(value) do
+  #    value
+  #    |> Enum.map(fn {k, v} -> {k, convert_out(v, type, lenient)} end)
+  #    |> Map.new()
+  #  end
 
   def convert_out(%BSON.ObjectId{} = value, :string, _lenient) do
     BSON.ObjectId.encode!(value)
