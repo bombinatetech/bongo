@@ -298,18 +298,18 @@ defmodule Bongo.Model do
       import Bongo.Model, only: [model: 1, model: 2]
 
       import Bongo.Filters,
-             only: [
-               sort: 1,
-               sort: 2,
-               project: 1,
-               project: 2,
-               limit: 1,
-               limit: 2,
-               skip: 1,
-               skip: 2,
-               upsert: 1,
-               upsert: 2
-             ]
+        only: [
+          sort: 1,
+          sort: 2,
+          project: 1,
+          project: 2,
+          limit: 1,
+          limit: 2,
+          skip: 1,
+          skip: 2,
+          upsert: 1,
+          upsert: 2
+        ]
 
       def normalize(value, lenient) when is_list(value) do
         Enum.map(value, &normalize(&1, lenient))
@@ -325,10 +325,10 @@ defmodule Bongo.Model do
             resp =
               value
               |> into(
-                   __MODULE__.__in_types__(),
-                   __MODULE__.__defaults__(),
-                   lenient
-                 )
+                __MODULE__.__in_types__(),
+                __MODULE__.__defaults__(),
+                lenient
+              )
               |> filter_nils()
 
             case lenient do
@@ -351,10 +351,10 @@ defmodule Bongo.Model do
         resp =
           value
           |> from(
-               __MODULE__.__out_types__(),
-               __MODULE__.__defaults__(),
-               lenient
-             )
+            __MODULE__.__out_types__(),
+            __MODULE__.__defaults__(),
+            lenient
+          )
           |> filter_nils()
           |> Map.new()
 
@@ -409,8 +409,7 @@ defmodule Bongo.Model do
           @connection,
           @collection_name,
           query,
-          @default_opts
-          |> Keyword.merge(opts)
+          @default_opts ++ opts
         )
       end
 
@@ -419,8 +418,7 @@ defmodule Bongo.Model do
           @connection,
           @collection_name,
           query,
-          @default_opts
-          |> Keyword.merge(opts)
+          @default_opts ++ opts
         )
       end
 
@@ -429,8 +427,7 @@ defmodule Bongo.Model do
           @connection,
           @collection_name,
           obj,
-          @default_opts
-          |> Keyword.merge(opts)
+          @default_opts ++ opts
         )
       end
 
@@ -439,8 +436,7 @@ defmodule Bongo.Model do
           @connection,
           @collection_name,
           obj,
-          @default_opts
-          |> Keyword.merge(opts)
+          @default_opts ++ opts
         )
       end
 
@@ -449,8 +445,7 @@ defmodule Bongo.Model do
           @connection,
           @collection_name,
           query,
-          @default_opts
-          |> Keyword.merge(opts)
+          @default_opts ++ opts
         )
         |> Enum.to_list()
       end
@@ -461,8 +456,7 @@ defmodule Bongo.Model do
           @collection_name,
           query,
           update,
-          @default_opts
-          |> Keyword.merge(opts)
+          @default_opts ++ opts
         )
       end
 
@@ -472,8 +466,7 @@ defmodule Bongo.Model do
           @collection_name,
           query,
           update,
-          @default_opts
-          |> Keyword.merge(opts)
+          @default_opts ++ opts
         )
       end
 
@@ -547,10 +540,10 @@ defmodule Bongo.Model do
       Bongo.Model.__type__(List.flatten([@in_types, @out_types]), unquote(opts))
 
       def __keys__,
-          do:
-            @fields
-            |> Keyword.keys()
-            |> Enum.reverse()
+        do:
+          @fields
+          |> Keyword.keys()
+          |> Enum.reverse()
 
       def __defaults__, do: Enum.reverse(@fields)
       def __in_types__, do: Enum.reverse(@in_types)
@@ -600,8 +593,8 @@ defmodule Bongo.Model do
 
     enforce? =
       if is_nil(opts[:enforce]),
-         do: Module.get_attribute(mod, :enforce?) && is_nil(default),
-         else: !!opts[:enforce]
+        do: Module.get_attribute(mod, :enforce?) && is_nil(default),
+        else: !!opts[:enforce]
 
     nullable? = !default && !enforce?
 
