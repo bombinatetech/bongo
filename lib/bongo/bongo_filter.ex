@@ -4,8 +4,7 @@ defmodule Bongo.Filters do
   end
 
   def sort(opts, key) do
-    opts
-    |> Keyword.merge(sort: key)
+    opts ++ sort(key)
   end
 
   def project(key) do
@@ -13,8 +12,7 @@ defmodule Bongo.Filters do
   end
 
   def project(opts, key) do
-    opts
-    |> Keyword.merge(projection: key)
+    opts ++ project(key)
   end
 
   def limit(key) do
@@ -22,8 +20,7 @@ defmodule Bongo.Filters do
   end
 
   def limit(opts, key) do
-    opts
-    |> Keyword.merge(limit: key)
+    opts ++ limit(key)
   end
 
   def skip(key) do
@@ -31,8 +28,7 @@ defmodule Bongo.Filters do
   end
 
   def skip(opts, key) do
-    opts
-    |> Keyword.merge(skip: key)
+    opts ++ skip(key)
   end
 
   def upsert(bool) do
@@ -40,7 +36,6 @@ defmodule Bongo.Filters do
   end
 
   def upsert(opts, bool) do
-    opts
-    |> Keyword.merge(upsert: bool)
+    opts ++ upsert(bool)
   end
 end
