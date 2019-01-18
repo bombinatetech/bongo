@@ -80,8 +80,8 @@ defmodule Bongo.Converter.Out do
   def convert_out(value, module, lenient) do
     module.structize(value, lenient)
   rescue
-    debug_log({module, value}, "failed to structize {module,value} ")
-    value
+    _ -> debug_log({module, value}, "failed to structize {module,value} ")
+         value
   end
 
   def from(item, out_types, _defaults, lenient) do

@@ -102,8 +102,8 @@ defmodule Bongo.Converter.In do
     debug_log(:module, "value, module, lenients : normalize into = ")
     module.normalize(value, lenient)
   rescue
-    debug_log({module, value}, "failed to normalize {module,value} ")
-    value
+    _ -> debug_log({module, value}, "failed to normalize {module,value} ")
+         value
   end
 
   def into(item, in_types, defaults, lenient) do
