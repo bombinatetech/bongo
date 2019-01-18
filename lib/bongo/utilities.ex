@@ -1,4 +1,7 @@
 defmodule Bongo.Utilities do
+
+  @debug false
+
   def to_struct(kind, attrs) do
     struct = struct(kind)
 
@@ -43,5 +46,13 @@ defmodule Bongo.Utilities do
   def log_and_return(o, label \\ "") do
     IO.inspect(inspect(o), label: label)
     o
+  end
+
+  defmacro debug_log(value, label) do
+    if @debug do
+      quote do
+        IO.inspect(inspect(unquote(value)), label: unquote(label))
+      end
+    end
   end
 end

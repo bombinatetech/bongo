@@ -1,5 +1,5 @@
 defmodule Bongo.Converter.Out do
-  import Bongo.Utilities, only: [log_and_return: 2]
+  import Bongo.Utilities, only: [log_and_return: 2, debug_log: 2]
 
   def convert_out(nil, _type, _lenient) do
     nil
@@ -64,22 +64,40 @@ defmodule Bongo.Converter.Out do
     end
   end
 
+  def convert_out(value, :any, _lenient) do
+    value
+  end
+
+  def convert_out(value, :float, _lenient) do
+    value
+  end
+
+  def convert_out(value, :double, _lenient) do
+    value
+  end
+
   # fixme what if we reached here as a dead end ? safely check this brooo
   def convert_out(value, module, lenient) do
     module.structize(value, lenient)
+  rescue
+    debug_log({module, value}, "failed to structize {module,value} ")
+    value
   end
 
   def from(item, out_types, _defaults, lenient) do
-    Enum.map(item, fn {k, v} ->
-      atom = String.to_atom(to_string(k))
+    Enum.map(
+      item,
+      fn {k, v} ->
+        atom = String.to_atom(to_string(k))
 
-      case Keyword.has_key?(out_types, atom) do
-        true ->
-          {k, convert_out(v, out_types[atom], lenient)}
+        case Keyword.has_key?(out_types, atom) do
+          true ->
+            {k, convert_out(v, out_types[atom], lenient)}
 
-        false ->
-          {k, :blackhole}
+          false ->
+            {k, :blackhole}
+        end
       end
-    end)
+    )
   end
 end

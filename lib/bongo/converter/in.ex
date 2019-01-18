@@ -1,15 +1,5 @@
 defmodule Bongo.Converter.In do
-  import Bongo.Utilities, only: [log_and_return: 2]
-
-  @debug false
-
-  defmacrop debug_log(value, label) do
-    if @debug do
-      quote do
-        IO.inspect(inspect(unquote(value)), label: unquote(label))
-      end
-    end
-  end
+  import Bongo.Utilities, only: [log_and_return: 2, debug_log: 2]
 
   def convert_in(nil, type, _lenient) do
     debug_log(type, "nil, type, _lenient : type = ")
@@ -95,10 +85,25 @@ defmodule Bongo.Converter.In do
     end
   end
 
+  def convert_in(value, :double, _lenient) do
+    value
+  end
+
+  def convert_in(value, :float, _lenient) do
+    value
+  end
+
+  def convert_in(value, :any, _lenient) do
+    value
+  end
+
   # fixme what if we reached here as a dead end ? safely check this brooo
   def convert_in(value, module, lenient) do
     debug_log(:module, "value, module, lenients : normalize into = ")
     module.normalize(value, lenient)
+  rescue
+    debug_log({module, value}, "failed to normalize {module,value} ")
+    value
   end
 
   def into(item, in_types, defaults, lenient) do

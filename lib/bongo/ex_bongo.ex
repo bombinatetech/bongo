@@ -277,20 +277,35 @@ defmodule Bongo.Model do
 
   @doc false
   defmacro __using__(opts) do
+
+
+    """
+    Check alot of things in opts and generate code accordingly
+    macros are awesome ..you can do a lot of magic with them
+
+    But a wise man once said
+    Only a magician can play with fire
+    he has the skill
+    not everyone should try it
+
+    just like they say in the tv commercials :dont try this(macros) at home
+    (anywhere and everywhere)
+    """
+
+    connection = opts[:connection]
+    default_opts = opts[:default_opts]
+    collection_name = opts[:collection_name]
+    is_collection = opts[:is_collection]
+
+    #todo link to parent model if not collection
+    in_model = opts[:in_model]
+    in_model_as = opts[:in_model_as]
+
+
     quote location: :keep do
-      Module.put_attribute(__MODULE__, :connection, unquote(opts[:connection]))
-
-      Module.put_attribute(
-        __MODULE__,
-        :default_opts,
-        unquote(opts[:default_opts])
-      )
-
-      Module.put_attribute(
-        __MODULE__,
-        :collection_name,
-        unquote(opts[:collection_name])
-      )
+      Module.put_attribute(__MODULE__, :connection, unquote(connection))
+      Module.put_attribute(__MODULE__, :default_opts, unquote(default_opts))
+      Module.put_attribute(__MODULE__, :collection_name, unquote(collection_name))
 
       import Bongo.Converter.In, only: [into: 4]
       import Bongo.Converter.Out, only: [from: 4]
@@ -364,112 +379,6 @@ defmodule Bongo.Model do
         end
       end
 
-      defp add_many!(obj, opts \\ []) do
-        case is_valid(obj) do
-          true -> add_many_raw!(normalize(obj, false), opts)
-          false -> raise "Not a valid obj"
-        end
-      end
-
-      defp add!(obj, opts \\ []) do
-        case is_valid(obj) do
-          true -> add_raw!(normalize(obj, false), opts)
-          false -> raise "Not a valid obj"
-        end
-      end
-
-      defp find_one(query \\ %{}, opts \\ []) do
-        item = find_one_raw(normalize(query, true), opts)
-        nill(item, structize(item, false))
-      end
-
-      defp find(query \\ %{}, opts \\ []) do
-        item = find_raw(normalize(query, true), opts)
-        nill(item, structize(item, false))
-      end
-
-      defp update!(query, update, opts \\ []) do
-        update_raw!(
-          normalize(query, true),
-          Enum.map(update, fn {k, v} -> {k, normalize(v, true)} end),
-          opts
-        )
-      end
-
-      defp update_many!(query, update, opts \\ []) do
-        update_many_raw!(
-          normalize(query, true),
-          Enum.map(update, fn {k, v} -> {k, normalize(v, true)} end),
-          opts
-        )
-      end
-
-      defp remove!(query, opts \\ []) do
-        Mongo.delete_many!(
-          @connection,
-          @collection_name,
-          query,
-          @default_opts ++ opts
-        )
-      end
-
-      defp find_one_raw(query \\ %{}, opts \\ []) do
-        Mongo.find_one(
-          @connection,
-          @collection_name,
-          query,
-          @default_opts ++ opts
-        )
-      end
-
-      defp add_raw!(obj, opts \\ []) do
-        Mongo.insert_one!(
-          @connection,
-          @collection_name,
-          obj,
-          @default_opts ++ opts
-        )
-      end
-
-      defp add_many_raw!(obj, opts \\ []) do
-        Mongo.insert_many!(
-          @connection,
-          @collection_name,
-          obj,
-          @default_opts ++ opts
-        )
-      end
-
-      defp find_raw(query \\ %{}, opts \\ []) do
-        Mongo.find(
-          @connection,
-          @collection_name,
-          query,
-          @default_opts ++ opts
-        )
-        |> Enum.to_list()
-      end
-
-      defp update_many_raw!(query, update, opts \\ []) do
-        Mongo.update_many!(
-          @connection,
-          @collection_name,
-          query,
-          update,
-          @default_opts ++ opts
-        )
-      end
-
-      defp update_raw!(query, update, opts \\ []) do
-        Mongo.update_one!(
-          @connection,
-          @collection_name,
-          query,
-          update,
-          @default_opts ++ opts
-        )
-      end
-
       def is_valid(%mod{} = items) when is_list(items) do
         !Enum.find(items, &(!is_valid(&1)))
       end
@@ -480,6 +389,116 @@ defmodule Bongo.Model do
 
       def is_valid(_) do
         false
+      end
+    end
+
+    if is_collection do
+      quote location: :keep do
+        defp add_many!(obj, opts \\ []) do
+          case is_valid(obj) do
+            true -> add_many_raw!(normalize(obj, false), opts)
+            false -> raise "Not a valid obj"
+          end
+        end
+
+        defp add!(obj, opts \\ []) do
+          case is_valid(obj) do
+            true -> add_raw!(normalize(obj, false), opts)
+            false -> raise "Not a valid obj"
+          end
+        end
+
+        defp find_one(query \\ %{}, opts \\ []) do
+          item = find_one_raw(normalize(query, true), opts)
+          nill(item, structize(item, false))
+        end
+
+        defp find(query \\ %{}, opts \\ []) do
+          item = find_raw(normalize(query, true), opts)
+          nill(item, structize(item, false))
+        end
+
+        defp update!(query, update, opts \\ []) do
+          update_raw!(
+            normalize(query, true),
+            Enum.map(update, fn {k, v} -> {k, normalize(v, true)} end),
+            opts
+          )
+        end
+
+        defp update_many!(query, update, opts \\ []) do
+          update_many_raw!(
+            normalize(query, true),
+            Enum.map(update, fn {k, v} -> {k, normalize(v, true)} end),
+            opts
+          )
+        end
+
+        defp remove!(query, opts \\ []) do
+          Mongo.delete_many!(
+            @connection,
+            @collection_name,
+            query,
+            @default_opts ++ opts
+          )
+        end
+
+        defp find_one_raw(query \\ %{}, opts \\ []) do
+          Mongo.find_one(
+            @connection,
+            @collection_name,
+            query,
+            @default_opts ++ opts
+          )
+        end
+
+        defp add_raw!(obj, opts \\ []) do
+          Mongo.insert_one!(
+            @connection,
+            @collection_name,
+            obj,
+            @default_opts ++ opts
+          )
+        end
+
+        defp add_many_raw!(obj, opts \\ []) do
+          Mongo.insert_many!(
+            @connection,
+            @collection_name,
+            obj,
+            @default_opts ++ opts
+          )
+        end
+
+        defp find_raw(query \\ %{}, opts \\ []) do
+          Mongo.find(
+            @connection,
+            @collection_name,
+            query,
+            @default_opts ++ opts
+          )
+          |> Enum.to_list()
+        end
+
+        defp update_many_raw!(query, update, opts \\ []) do
+          Mongo.update_many!(
+            @connection,
+            @collection_name,
+            query,
+            update,
+            @default_opts ++ opts
+          )
+        end
+
+        defp update_raw!(query, update, opts \\ []) do
+          Mongo.update_one!(
+            @connection,
+            @collection_name,
+            query,
+            update,
+            @default_opts ++ opts
+          )
+        end
       end
     end
   end
