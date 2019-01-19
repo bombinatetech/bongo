@@ -105,5 +105,24 @@ is_valid
 ```
 
 
+### model generator
+
+You can generate the models even if they have nested models by passing a map 
+to this generator function
+```elixir
+user = %{
+   name: "Ramu Kaka",
+   age: 13,
+   address: %{
+      city: "bangalore",
+      country: "India"
+     }
+   }
+   
+Bongo.MapToModel.generate_model_for("user", user)
+```
+this Generates two files user.ex and address.ex and embeds the address type
+
+
 Built on top of the great work by ejpcmac [https://github.com/ejpcmac/typed_struct]
 
