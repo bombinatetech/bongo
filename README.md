@@ -4,7 +4,7 @@ Elegant mongodb object modeling for elixir
 
 add to deps
 ```elixir
-      {:bongo, git: "https://github.com/bombinatetech/bongo"},
+      {:bongo, git: "https://github.com/bombinatetech/bongo", tag: "v0.0.8" },
       {:mongodb}
 ```
 
