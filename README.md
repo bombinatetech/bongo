@@ -26,11 +26,11 @@ declare a model
   @typedoc "A User"
   @derive Jason.Encoder
   model do
-    field(:_id, BSON.ObjectId.t(), String.t(), enforce: false)
-    field(:handle, String.t(), String.t(), enforce: true)
+    field(:_id, :objectId, :string, enforce: false)
+    field(:handle, :string, :string, enforce: true)
     field(:items, [Models.Product.t()], [Models.Product.t()])
 
-    field(:created_at, Integer.t(), Integer.t(),
+    field(:created_at, :integer, :integer,
       default: [DateUtils, :current_time_in_seconds, []]
     )
   end
@@ -48,9 +48,20 @@ the default value can be a function call in this format
 [model, function_name_atom, args]
 ```
 
+all available types
+```elixir
+:string
+:integer
+:objectId
+:boolean
+:float
+:double
+:any
+```
+
 ```elixir
 field(:field1, in_type.t(), out_type.t(), enforce: true)
-field(:field2, Integer.t(), Integer.t(), default: 10)
+field(:field2, :integer, :integer, default: 10)
 field(:field3, AnotherBongoModel.t(), AnotherBongoModel.t(), default: 10)
 field(:field3, AnotherBongoModel.t(), AnotherBongoModel.t(), default: [AnotherBongoModel, :default_object_generator, []])
 ```
@@ -73,10 +84,12 @@ add!
 find_one
 find
 remove!
-update_many_raw!
-update_raw!
+update!
+update_many!
 
 #try not to use the below ones
+update_many_raw!
+update_raw!
 find_one_raw
 add_raw!
 add_many_raw!
