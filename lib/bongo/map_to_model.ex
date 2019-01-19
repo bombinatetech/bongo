@@ -1,65 +1,76 @@
 defmodule Bongo.MapToModel do
   def type(k, v) do
-    type_text =
-      cond do
-        is_boolean(v) ->
-          ":boolean, :boolean"
+    type_text = type_raw(k, v)
+    "\t\tfield(:#{k}, #{type_text}, enforce: true)\n"
+  end
 
-        is_integer(v) ->
-          ":integer, :integer"
+  def type_raw(k, v) do
+    cond do
+      is_boolean(v) ->
+        ":boolean, :boolean"
 
-        is_float(v) -> ":float, :float"
+      is_integer(v) ->
+        ":integer, :integer"
 
-        OkApi.Util.is_object_id?(v) ->
-          ":objectId, :string"
+      is_float(v) -> ":float, :float"
 
-        is_list(v) ->
-          cond do
-            length(v) > 0 ->
-              new_mod = generate_model_for(k, Enum.at(v, 0), false)
-              "[#{new_mod}.t()], [#{new_mod}.t()]"
+      is_object_id(v) ->
+        ":objectId, :string"
 
-            true ->
-              "[:any], [:any]"
-          end
+      is_list(v) ->
+        cond do
+          length(v) > 0 ->
+            first_item = Enum.at(v, 0)
+            type = type_raw(k, first_item)
+            type
+            |> String.split(", ")
+            |> Enum.map(&("[#{&1}]"))
+            |> Enum.join(", ")
 
-        is_map(v) ->
-          new_mod = generate_model_for(k, v, false)
-          "#{new_mod}.t(), #{new_mod}.t()"
+          true ->
+            "[:any], [:any]"
+        end
 
-        String.valid?(v) ->
-          ":string, :string"
+      is_map(v) ->
+        new_mod = generate_model_for(k, v, false)
+        "#{new_mod}.t(), #{new_mod}.t()"
 
-        true ->
-          ":any, :any"
-      end
+      String.valid?(v) ->
+        ":string, :string"
 
-    "field(:#{k}, #{type_text}, enforce: true)\n"
+      true ->
+        ":any, :any"
+    end
+  end
+
+  def is_object_id(%BSON.ObjectId{} = v) do
+    true
+  end
+
+  def is_object_id(_) do
+    false
   end
 
   def generate_model_for(pmodel_name, model, is_collection \\ true) do
     fields = Enum.map(model, fn {k, v} -> type(k, v) end)
-    model_name = "Models.#{String.capitalize(pmodel_name)}"
-    collection_name = String.downcase(pmodel_name)
-    config_text = ""
-
-    if is_collection do
-      config_text =
+    model_name = "Models.#{String.capitalize(to_string(pmodel_name))}"
+    collection_name = String.downcase(to_string(pmodel_name))
+    config_text =
+      case is_collection do
+        true ->
         "[collection_name: \"#{collection_name}\",is_collection: false]"
-    else
-      config_text = "[is_collection: false]"
-    end
+        false -> "[is_collection: false]"
+      end
 
     File.write!(
-      "#{pmodel_name}.ex",
+      "#{collection_name}.ex",
       """
       defmodule #{model_name} do
-        use Bongo.Model, #{config_text}
-
-        @derive Jason.Encoder
-        model do
-          #{fields}
-        end
+      \tuse Bongo.Model, #{config_text}\n
+      \t@derive Jason.Encoder
+      \tmodel do
+      #{fields}
+      \tend
       end
       """
     )

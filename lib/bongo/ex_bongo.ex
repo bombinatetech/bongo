@@ -277,54 +277,57 @@ defmodule Bongo.Model do
 
   @doc false
   defmacro __using__(opts) do
+    #    Check alot of things in opts and generate code accordingly
+    #    macros are awesome ..you can do a lot of magic with them
+    #
+    #    But a wise man once said
+    #    Only a magician can play with fire
+    #    he has the skill
+    #    not everyone should try it
+    #
+    #    just like they say in the tv commercials :dont try this(macros) at home
+    #    (anywhere and everywhere)
 
+    connection =
+      case opts[:connection] do
+        nil -> ""
+        _ -> opts[:connection]
+      end
 
-    """
-    Check alot of things in opts and generate code accordingly
-    macros are awesome ..you can do a lot of magic with them
+    default_opts =
+      case opts[:default_opts] do
+        nil -> []
+        _ -> opts[:default_opts]
+      end
 
-    But a wise man once said
-    Only a magician can play with fire
-    he has the skill
-    not everyone should try it
+    collection_name =
+      case opts[:collection_name] do
+        nil -> ""
+        _ -> opts[:collection_name]
+      end
 
-    just like they say in the tv commercials :dont try this(macros) at home
-    (anywhere and everywhere)
-    """
+    is_collection =
+      case opts[:is_collection] do
+        nil -> true
+        _ -> opts[:is_collection]
+      end
 
-    connection = opts[:connection]
-    default_opts = opts[:default_opts]
-    collection_name = opts[:collection_name]
-    is_collection = opts[:is_collection]
-
-    #todo link to parent model if not collection
+    # todo link to parent model if not collection
     in_model = opts[:in_model]
     in_model_as = opts[:in_model_as]
 
-
-    quote location: :keep do
-      Module.put_attribute(__MODULE__, :connection, unquote(connection))
-      Module.put_attribute(__MODULE__, :default_opts, unquote(default_opts))
-      Module.put_attribute(__MODULE__, :collection_name, unquote(collection_name))
+    quote do
+      @connection unquote(connection)
+      @default_opts unquote(default_opts)
+      @collection_name unquote(collection_name)
+      @is_collection unquote(is_collection)
+      @in_model unquote(in_model)
+      @in_model_as unquote(in_model_as)
 
       import Bongo.Converter.In, only: [into: 4]
       import Bongo.Converter.Out, only: [from: 4]
       import Bongo.Utilities, only: [filter_nils: 1, to_struct: 2, nill: 2]
       import Bongo.Model, only: [model: 1, model: 2]
-
-      import Bongo.Filters,
-        only: [
-          sort: 1,
-          sort: 2,
-          project: 1,
-          project: 2,
-          limit: 1,
-          limit: 2,
-          skip: 1,
-          skip: 2,
-          upsert: 1,
-          upsert: 2
-        ]
 
       def normalize(value, lenient) when is_list(value) do
         Enum.map(value, &normalize(&1, lenient))
@@ -340,10 +343,10 @@ defmodule Bongo.Model do
             resp =
               value
               |> into(
-                __MODULE__.__in_types__(),
-                __MODULE__.__defaults__(),
-                lenient
-              )
+                   __MODULE__.__in_types__(),
+                   __MODULE__.__defaults__(),
+                   lenient
+                 )
               |> filter_nils()
 
             case lenient do
@@ -366,10 +369,10 @@ defmodule Bongo.Model do
         resp =
           value
           |> from(
-            __MODULE__.__out_types__(),
-            __MODULE__.__defaults__(),
-            lenient
-          )
+               __MODULE__.__out_types__(),
+               __MODULE__.__defaults__(),
+               lenient
+             )
           |> filter_nils()
           |> Map.new()
 
@@ -390,10 +393,27 @@ defmodule Bongo.Model do
       def is_valid(_) do
         false
       end
-    end
 
+      unquote(generate_collection_functions(is_collection))
+    end
+  end
+
+  defp generate_collection_functions(is_collection) do
     if is_collection do
-      quote location: :keep do
+      quote do
+        import Bongo.Filters,
+               only: [
+                 sort: 1,
+                 sort: 2,
+                 project: 1,
+                 project: 2,
+                 limit: 1,
+                 limit: 2,
+                 skip: 1,
+                 skip: 2,
+                 upsert: 1,
+                 upsert: 2
+               ]
         defp add_many!(obj, opts \\ []) do
           case is_valid(obj) do
             true -> add_many_raw!(normalize(obj, false), opts)
