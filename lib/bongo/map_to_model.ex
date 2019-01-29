@@ -57,8 +57,7 @@ defmodule Bongo.MapToModel do
     collection_name = String.downcase(to_string(pmodel_name))
     config_text =
       case is_collection do
-        true ->
-        "[collection_name: \"#{collection_name}\",is_collection: false]"
+        true -> "[collection_name: \"#{collection_name}\"]"
         false -> "[is_collection: false]"
       end
 

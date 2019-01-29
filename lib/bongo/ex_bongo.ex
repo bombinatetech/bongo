@@ -382,7 +382,7 @@ defmodule Bongo.Model do
         end
       end
 
-      def is_valid(%mod{} = items) when is_list(items) do
+      def is_valid(items) when is_list(items) do
         !Enum.find(items, &(!is_valid(&1)))
       end
 
