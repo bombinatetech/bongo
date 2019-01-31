@@ -47,8 +47,15 @@ defmodule Bongo.Converter.In do
     |> Enum.map(fn v -> convert_in(v, type, lenient) end)
   end
 
-  def convert_in(value, type, lenient)
-      when is_map(value) do
+  def convert_in(%_{} = value, module, lenient) do
+    debug_log(:module, "value, module, lenients : normalize into = ")
+    module.normalize(value, lenient)
+  rescue
+    _ -> debug_log({module, value}, "failed to normalize {module,value} ")
+         value
+  end
+
+  def convert_in(%{} = value, type, lenient) do
     debug_log(type, "value, type, lenient when is_map(value) : type = ")
 
     value
@@ -98,13 +105,7 @@ defmodule Bongo.Converter.In do
   end
 
   # fixme what if we reached here as a dead end ? safely check this brooo
-  def convert_in(value, module, lenient) do
-    debug_log(:module, "value, module, lenients : normalize into = ")
-    module.normalize(value, lenient)
-  rescue
-    _ -> debug_log({module, value}, "failed to normalize {module,value} ")
-         value
-  end
+
 
   def into(item, in_types, defaults, lenient) do
     in_types

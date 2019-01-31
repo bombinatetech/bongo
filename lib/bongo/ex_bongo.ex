@@ -414,6 +414,15 @@ defmodule Bongo.Model do
                  upsert: 1,
                  upsert: 2
                ]
+
+        defp count!(query, opts \\ []) do
+          count_raw!(normalize(query, true), opts)
+        end
+
+        defp count(query, opts \\ []) do
+          count_raw(normalize(query, true), opts)
+        end
+
         defp add_many!(obj, opts \\ []) do
           case is_valid(obj) do
             true -> add_many_raw!(normalize(obj, false), opts)
@@ -519,6 +528,26 @@ defmodule Bongo.Model do
             @default_opts ++ opts
           )
         end
+
+        defp count_raw!(query, opts \\ []) do
+          Mongo.count!(
+            @connection,
+            @collection_name,
+            query,
+            @default_opts ++ opts
+          )
+        end
+
+        defp count_raw(query, opts \\ []) do
+          Mongo.count(
+            @connection,
+            @collection_name,
+            query,
+            @default_opts ++ opts
+          )
+        end
+
+
       end
     end
   end

@@ -2,7 +2,7 @@ defmodule Bongo.MixProject do
   use Mix.Project
 
   @version "0.0.1"
-  @repo_url "https://github.com/bombinatetech/typed_struct"
+  @repo_url "https://github.com/bombinatetech/bongo"
 
   def project do
     [
@@ -29,6 +29,10 @@ defmodule Bongo.MixProject do
       package: package(),
       description: "A simple odm for mongodb written in elixir"
     ]
+  end
+
+  defp description() do
+    "A minimal mongodb orm for elixir"
   end
 
   defp deps do
