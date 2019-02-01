@@ -340,21 +340,25 @@ defmodule Bongo.Model do
         Enum.map(value, &normalize(&1, lenient, opts))
       end
 
+      def nil_filter(input, opts) do
+        case opts[:filter_nils] != false do
+          true -> filter_nils(input)
+          false -> input
+        end
+      end
+
 
       def normalize(value, lenient, opts) do
         case lenient or is_valid(value) do
           true ->
             resp =
-              into(
-                value,
+              value
+              |> into(
                 __MODULE__.__in_types__(),
                 __MODULE__.__defaults__(),
                 lenient
               )
-
-            if opts[:filter_nils] != false do
-              resp = filter_nils(resp)
-            end
+              |> nil_filter(opts)
 
             case lenient do
               true ->
