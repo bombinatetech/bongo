@@ -47,11 +47,17 @@ defmodule Bongo.Converter.In do
     |> Enum.map(fn v -> convert_in(v, type, lenient) end)
   end
 
-  def convert_in(%_{} = value, module, lenient) do
+  def convert_in(%i_module{} = value, module, lenient) do
     debug_log(:module, "value, module, lenients : normalize into = ")
     module.normalize(value, lenient)
   rescue
-    _ -> debug_log({module, value}, "failed to normalize {module,value} ")
+    _ ->
+      debug_log(
+        {i_module, module, value},
+        "failed to normalize {i_module,
+    module,
+    value} "
+      )
          value
   end
 
