@@ -366,7 +366,10 @@ defmodule Bongo.Model do
 
               false ->
                 case Enum.member?(__MODULE__.__keys__(), :_id) do
-                  true -> Map.merge(%{_id: Mongo.object_id()}, resp)
+                  true -> case resp[:_id] do
+                            nil -> Map.merge(resp, %{_id: Mongo.object_id()})
+                            obj -> resp
+                          end
                   false -> resp
                 end
             end
