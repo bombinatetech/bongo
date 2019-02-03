@@ -1,2 +1,0 @@
-defmodule BongoTest do
-end
