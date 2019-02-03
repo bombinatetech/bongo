@@ -46,7 +46,6 @@ defmodule Bongo.MixProject do
 
       # Project dependencies
       {:mongodb, ">= 0.0.0"},
-      {:jason, ">= 1.0.0"},
 
       # Documentation dependencies
       {:ex_doc, "~> 0.19", only: :dev, runtime: false}
