@@ -535,11 +535,11 @@ defmodule Bongo.Model do
           )
         end
 
-        defp remove_one!(query, opts) do
+        defp remove_one!(query, opts \\ []) do
           remove_one_raw!(normalize(query, true, opts), opts)
         end
 
-        defp remove_many!(query, opts) do
+        defp remove_many!(query, opts \\ []) do
           remove_many_raw!(normalize(query, true, opts), opts)
         end
 
