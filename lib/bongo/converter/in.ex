@@ -105,7 +105,12 @@ defmodule Bongo.Converter.In do
     debug_log(:integer, "value, :integer, _lenient : type = ")
     cond do
       is_number(value) -> value
-      true -> Integer.parse(to_string(value))
+      is_binary(value) -> value
+                          |> to_string
+                          |> Integer.parse
+      true -> value
+              |> inspect
+              |> Integer.parse
     end
   end
 
@@ -143,14 +148,21 @@ defmodule Bongo.Converter.In do
   # fixme what if we reached here as a dead end ? safely check this brooo
 
   def into(item, in_types, defaults, opts, lenient) do
+
+    mongo_internals_keywords_list = [
+      "$or": {:mongo_internal, in_types, defaults, opts},
+      "$and": {:mongo_internal, in_types, defaults, opts}
+    ]
+
+    mongo_internals_keywords_list_keys = Keyword.keys(mongo_internals_keywords_list)
+
+
+
     defaults = case lenient do
       true -> []
       false -> defaults
     end
-    in_types ++ [
-      "$or": {:mongo_internal, in_types, defaults, opts},
-      "$and": {:mongo_internal, in_types, defaults, opts}
-    ]
+    in_types ++ mongo_internals_keywords_list
     |> Enum.map(fn {k, v} ->
       {
         k,
@@ -160,6 +172,7 @@ defmodule Bongo.Converter.In do
       }
     end)
     |> Map.new()
+    |> Map.drop(mongo_internals_keywords_list_keys)
     |> Bongo.Utilities.nil_filter(opts)
   end
 

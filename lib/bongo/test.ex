@@ -12,9 +12,22 @@ defmodule Model.Test do
   end
 
 
+  def insert()do
+    normalize(
+      %Model.Test{
+        time_slot_start_hour: 4,
+        time_slot_end_hour: 5,
+        optin_days: [1, 2, 3, 4, 5]
+      },
+      true,
+      filter_nils: true
+    )
+    |> Map.from_struct
+    |> structize(false)
+  end
 
   def get_qualifying_users_for_slots(day, hour) do
-    Model.Test.normalize(
+    normalize(
       %{
         "$or": [
           %{

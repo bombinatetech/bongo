@@ -4,14 +4,17 @@ defmodule Bongo.Utilities do
 
   def to_struct(kind, attrs) do
     struct = struct(kind)
-
-    Enum.reduce(
-      Map.to_list(struct),
+    struct
+    |> Map.to_list()
+    |> Enum.reduce(
       struct,
       fn {k, _}, acc ->
-        case Map.fetch(attrs, Atom.to_string(k)) do
-          {:ok, v} -> %{acc | k => v}
-          :error -> acc
+        case {Map.fetch(attrs, Atom.to_string(k)), Map.fetch(attrs, k)} do
+          {{:ok, v1}, {:ok, v2}} -> %{acc | k => v2}
+          #fixme v1 or v2 what to take bruh ?
+          {{:ok, v}, :error} -> %{acc | k => v}
+          {:error, {:ok, v}} -> %{acc | k => v}
+          {:error, :error} -> acc
         end
       end
     )
