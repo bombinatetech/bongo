@@ -52,13 +52,23 @@ defmodule Bongo.Converter.Out do
   def convert_out(value, :integer, _lenient) do
     cond do
       is_number(value) -> value
-      is_binary(value) -> value
-                          |> to_string
-                          |> Integer.parse
-      true -> value
-              |> inspect
-              |> Integer.parse
+      is_binary(value) -> case value
+                               |> to_string
+                               |> Integer.parse do
+                            {number, _extra} -> number
+                            :error -> value
+                          end
+      true -> case value
+                   |> inspect
+                   |> Integer.parse do
+                {number, _extra} -> number
+                :error -> value
+              end
     end
+  end
+
+  def convert_out(%BSON.ObjectId{} = value, :objectId, _lenient) do
+    value
   end
 
   def convert_out(value, :objectId, _lenient) do

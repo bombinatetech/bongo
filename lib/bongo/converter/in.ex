@@ -96,6 +96,10 @@ defmodule Bongo.Converter.In do
     apply(model, func, args)
   end
 
+  def convert_in(%BSON.ObjectId{} = value, :string, _lenient) do
+    BSON.ObjectId.encode!(value)
+  end
+
   def convert_in(value, :string, _lenient) do
     debug_log(:string, "value, :string, _lenient : type = ")
     to_string(value)
@@ -105,12 +109,18 @@ defmodule Bongo.Converter.In do
     debug_log(:integer, "value, :integer, _lenient : type = ")
     cond do
       is_number(value) -> value
-      is_binary(value) -> value
-                          |> to_string
-                          |> Integer.parse
-      true -> value
-              |> inspect
-              |> Integer.parse
+      is_binary(value) -> case value
+                               |> to_string
+                               |> Integer.parse do
+                            {number, _extra} -> number
+                            :error -> value
+                          end
+      true -> case value
+                   |> inspect
+                   |> Integer.parse do
+                {number, _extra} -> number
+                :error -> value
+              end
     end
   end
 

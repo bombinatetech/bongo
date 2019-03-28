@@ -466,11 +466,9 @@ defmodule Bongo.Model do
               document_to_insert = normalize(obj, false, opts)
               resp = add_raw!(document_to_insert, opts)
 
-              #TODO convert back to normalize
-              Map.merge(
-                document_to_insert,
-                %{_id: resp.inserted_id}
-              )
+              document_to_insert
+              |> Map.merge(%{_id: resp.inserted_id})
+              |> structize(false)
 
             false ->
               raise "Not a valid obj"

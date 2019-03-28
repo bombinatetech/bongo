@@ -1,7 +1,7 @@
 defmodule Bongo.MixProject do
   use Mix.Project
 
-  @version "0.1.2"
+  @version "0.1.4"
   @repo_url "https://github.com/bombinatetech/bongo"
 
   def project do

@@ -16,8 +16,9 @@ defmodule Model.Test do
     normalize(
       %Model.Test{
         time_slot_start_hour: 4,
-        time_slot_end_hour: 5,
-        optin_days: [1, 2, 3, 4, 5]
+        time_slot_end_hour: "5",
+        optin_days: [1, 2, "3", 4, 5],
+        _id: BSON.ObjectId.decode!("5bd1ddfe00f1632be7024d0f")
       },
       true,
       filter_nils: true

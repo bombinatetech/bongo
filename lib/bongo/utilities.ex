@@ -10,7 +10,7 @@ defmodule Bongo.Utilities do
       struct,
       fn {k, _}, acc ->
         case {Map.fetch(attrs, Atom.to_string(k)), Map.fetch(attrs, k)} do
-          {{:ok, v1}, {:ok, v2}} -> %{acc | k => v2}
+          {{:ok, _}, {:ok, v2}} -> %{acc | k => v2}
           #fixme v1 or v2 what to take bruh ?
           {{:ok, v}, :error} -> %{acc | k => v}
           {:error, {:ok, v}} -> %{acc | k => v}
