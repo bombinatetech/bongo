@@ -1,7 +1,7 @@
 defmodule Bongo.Converter.In do
   import Bongo.Utilities, only: [log_and_return: 2, debug_log: 2]
 
-  def convert_in(nil, type, _lenient) do
+  def convert_in(nil, _type, _lenient) do
     debug_log(type, "nil, type, _lenient : type = ")
     nil
   end

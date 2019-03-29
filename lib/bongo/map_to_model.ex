@@ -43,7 +43,7 @@ defmodule Bongo.MapToModel do
     end
   end
 
-  def is_object_id(%BSON.ObjectId{} = v) do
+  def is_object_id(%BSON.ObjectId{} = _v) do
     true
   end
 
