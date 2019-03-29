@@ -66,7 +66,6 @@ defmodule Bongo.MapToModel do
       """
       defmodule #{model_name} do
       \tuse Bongo.Model, #{config_text}\n
-      \t@derive Jason.Encoder
       \tmodel do
       #{fields}
       \tend

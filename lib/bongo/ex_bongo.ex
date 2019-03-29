@@ -274,6 +274,7 @@ defmodule Bongo.Model do
                 name: String.t()
               }
   """
+  import Bongo.Utilities, only: [nill: 3]
 
   @doc false
   defmacro __using__(opts) do
@@ -289,28 +290,32 @@ defmodule Bongo.Model do
     #    (anywhere and everywhere)
 
     connection =
-      case opts[:connection] do
-        nil -> ""
-        _ -> opts[:connection]
-      end
+      nill(
+        opts[:connection],
+        opts[:connection],
+        :bongo_no_connection_given
+      )
 
     default_opts =
-      case opts[:default_opts] do
-        nil -> []
-        _ -> opts[:default_opts]
-      end
+      nill(
+        opts[:default_opts],
+        opts[:default_opts],
+        []
+      )
 
     collection_name =
-      case opts[:collection_name] do
-        nil -> ""
-        _ -> opts[:collection_name]
-      end
+      nill(
+        opts[:collection_name],
+        opts[:collection_name],
+        :bongo_collection_name_empty
+      )
 
     is_collection =
-      case opts[:is_collection] do
-        nil -> true
-        _ -> opts[:is_collection]
-      end
+      nill(
+        opts[:is_collection],
+        opts[:is_collection],
+        true
+      )
 
     # todo link to parent model if not collection
     in_model = opts[:in_model]
@@ -326,28 +331,34 @@ defmodule Bongo.Model do
 
       import Bongo.Converter.In, only: [into: 4]
       import Bongo.Converter.Out, only: [from: 4]
-      import Bongo.Utilities, only: [filter_nils: 1, to_struct: 2, nill: 2]
+      import Bongo.Utilities, only: [filter_nils: 1, to_struct: 2, nill: 2,
+        nill: 3]
       import Bongo.Model, only: [model: 1, model: 2]
 
-      def normalize(value, lenient) when is_list(value) do
-        Enum.map(value, &normalize(&1, lenient))
+      def normalize(_value, _lenient, opts \\ [])
+      def normalize(value, lenient, opts) when is_list(value) do
+        Enum.map(value, &normalize(&1, lenient, opts))
       end
 
-      def structize(value, lenient) when is_list(value) do
-        Enum.map(value, &structize(&1, lenient))
+      def nil_filter(input, opts) do
+        case opts[:filter_nils] != false do
+          true -> filter_nils(input)
+          false -> input
+        end
       end
 
-      def normalize(value, lenient) do
+
+      def normalize(value, lenient, opts) do
         case lenient or is_valid(value) do
           true ->
             resp =
               value
               |> into(
-                   __MODULE__.__in_types__(),
-                   __MODULE__.__defaults__(),
-                   lenient
-                 )
-              |> filter_nils()
+                __MODULE__.__in_types__(),
+                __MODULE__.__defaults__(),
+                lenient
+              )
+              |> nil_filter(opts)
 
             case lenient do
               true ->
@@ -355,7 +366,10 @@ defmodule Bongo.Model do
 
               false ->
                 case Enum.member?(__MODULE__.__keys__(), :_id) do
-                  true -> Map.merge(%{_id: Mongo.object_id()}, resp)
+                  true -> case resp[:_id] do
+                            nil -> Map.merge(resp, %{_id: Mongo.object_id()})
+                            obj -> resp
+                          end
                   false -> resp
                 end
             end
@@ -363,6 +377,10 @@ defmodule Bongo.Model do
           false ->
             raise "Not of correct type"
         end
+      end
+
+      def structize(value, lenient) when is_list(value) do
+        Enum.map(value, &structize(&1, lenient))
       end
 
       def structize(value, lenient) do
@@ -414,42 +432,89 @@ defmodule Bongo.Model do
                  upsert: 1,
                  upsert: 2
                ]
+
+        defp count!(query, opts \\ []) do
+          count_raw!(
+            normalize(query, true, opts),
+            opts
+          )
+        end
+
+        defp count(query, opts \\ []) do
+          count_raw(
+            normalize(query, true, opts),
+            opts
+          )
+        end
+
         defp add_many!(obj, opts \\ []) do
           case is_valid(obj) do
-            true -> add_many_raw!(normalize(obj, false), opts)
-            false -> raise "Not a valid obj"
+            true ->
+              add_many_raw!(
+                normalize(obj, false, opts),
+                opts
+              )
+
+            false ->
+              raise "Not a valid obj"
           end
         end
 
         defp add!(obj, opts \\ []) do
           case is_valid(obj) do
-            true -> add_raw!(normalize(obj, false), opts)
-            false -> raise "Not a valid obj"
+            true ->
+              add_raw!(
+                normalize(obj, false, opts),
+                opts
+              )
+
+            false ->
+              raise "Not a valid obj"
           end
         end
 
         defp find_one(query \\ %{}, opts \\ []) do
-          item = find_one_raw(normalize(query, true), opts)
+          item =
+            find_one_raw(
+              normalize(query, true, opts),
+              opts
+            )
+
           nill(item, structize(item, false))
         end
 
         defp find(query \\ %{}, opts \\ []) do
-          item = find_raw(normalize(query, true), opts)
+          item =
+            find_raw(
+              normalize(query, true, opts),
+              opts
+            )
+
           nill(item, structize(item, false))
         end
 
         defp update!(query, update, opts \\ []) do
           update_raw!(
-            normalize(query, true),
-            Enum.map(update, fn {k, v} -> {k, normalize(v, true)} end),
+            normalize(query, true, opts),
+            Enum.map(
+              update,
+              fn {k, v} ->
+                {k, normalize(v, true, opts)}
+              end
+            ),
             opts
           )
         end
 
         defp update_many!(query, update, opts \\ []) do
           update_many_raw!(
-            normalize(query, true),
-            Enum.map(update, fn {k, v} -> {k, normalize(v, true)} end),
+            normalize(query, true, opts),
+            Enum.map(
+              update,
+              fn {k, v} ->
+                {k, normalize(v, true, opts)}
+              end
+            ),
             opts
           )
         end
@@ -516,6 +581,24 @@ defmodule Bongo.Model do
             @collection_name,
             query,
             update,
+            @default_opts ++ opts
+          )
+        end
+
+        defp count_raw!(query, opts \\ []) do
+          Mongo.count!(
+            @connection,
+            @collection_name,
+            query,
+            @default_opts ++ opts
+          )
+        end
+
+        defp count_raw(query, opts \\ []) do
+          Mongo.count(
+            @connection,
+            @collection_name,
+            query,
             @default_opts ++ opts
           )
         end

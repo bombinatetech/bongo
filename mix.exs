@@ -1,14 +1,14 @@
 defmodule Bongo.MixProject do
   use Mix.Project
 
-  @version "0.0.1"
-  @repo_url "https://github.com/bombinatetech/typed_struct"
+  @version "0.0.4"
+  @repo_url "https://github.com/bombinatetech/bongo"
 
   def project do
     [
       app: :bongo,
       version: @version,
-      elixir: "~> 1.6",
+      elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
 
@@ -31,6 +31,10 @@ defmodule Bongo.MixProject do
     ]
   end
 
+  defp description() do
+    "A minimal mongodb orm for elixir"
+  end
+
   defp deps do
     [
       # Development and test dependencies
@@ -42,10 +46,9 @@ defmodule Bongo.MixProject do
 
       # Project dependencies
       {:mongodb, ">= 0.0.0"},
-      {:jason, ">= 1.0.0"},
 
       # Documentation dependencies
-      {:ex_doc, "~> 0.19", only: :docs, runtime: false}
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
     ]
   end
 
