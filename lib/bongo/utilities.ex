@@ -34,7 +34,7 @@ defmodule Bongo.Utilities do
     |> Enum.into(%{})
   end
 
-  defmacro nill(value, block, lenient \\ false) do
+  defmacro nill(value, block, _lenient \\ false) do
     quote location: :keep do
       case unquote(value) do
         nil -> nil
