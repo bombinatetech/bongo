@@ -418,7 +418,7 @@ defmodule Bongo.Model do
 
   defp generate_collection_functions(is_collection) do
     if is_collection do
-      quote do
+      quote location: :keep do
         import Bongo.Filters,
                only: [
                  sort: 1,
@@ -601,7 +601,7 @@ defmodule Bongo.Model do
 
         #deprecated please use remove_one, remove_many or remove_all
         defp remove!(query, opts \\ []) do
-          remove_many_raw(query, opts)
+          remove_many_raw!(query, opts)
         end
 
         defp find_one_raw(query \\ %{}, opts \\ []) do
