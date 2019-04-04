@@ -329,23 +329,20 @@ defmodule Bongo.Model do
       @in_model unquote(in_model)
       @in_model_as unquote(in_model_as)
 
-      import Bongo.Converter.In, only: [into: 4]
+      import Bongo.Converter.In, only: [into: 5]
       import Bongo.Converter.Out, only: [from: 4]
-      import Bongo.Utilities, only: [filter_nils: 1, to_struct: 2, nill: 2,
-        nill: 3]
+
+      import Bongo.Utilities,
+             only: [filter_nils: 1, to_struct: 2, nill: 2, nill: 3]
+
       import Bongo.Model, only: [model: 1, model: 2]
 
       def normalize(_value, _lenient, opts \\ [])
+
       def normalize(value, lenient, opts) when is_list(value) do
         Enum.map(value, &normalize(&1, lenient, opts))
       end
 
-      def nil_filter(input, opts) do
-        case opts[:filter_nils] != false do
-          true -> filter_nils(input)
-          false -> input
-        end
-      end
 
 
       def normalize(value, lenient, opts) do
@@ -356,9 +353,9 @@ defmodule Bongo.Model do
               |> into(
                 __MODULE__.__in_types__(),
                 __MODULE__.__defaults__(),
+                   opts,
                 lenient
               )
-              |> nil_filter(opts)
 
             case lenient do
               true ->
@@ -366,11 +363,14 @@ defmodule Bongo.Model do
 
               false ->
                 case Enum.member?(__MODULE__.__keys__(), :_id) do
-                  true -> case resp[:_id] do
-                            nil -> Map.merge(resp, %{_id: Mongo.object_id()})
-                            obj -> resp
-                          end
-                  false -> resp
+                  true ->
+                    case resp[:_id] do
+                      nil -> Map.merge(resp, %{_id: Mongo.object_id()})
+                      obj -> resp
+                    end
+
+                  false ->
+                    resp
                 end
             end
 
@@ -418,7 +418,7 @@ defmodule Bongo.Model do
 
   defp generate_collection_functions(is_collection) do
     if is_collection do
-      quote do
+      quote location: :keep do
         import Bongo.Filters,
                only: [
                  sort: 1,
@@ -463,10 +463,12 @@ defmodule Bongo.Model do
         defp add!(obj, opts \\ []) do
           case is_valid(obj) do
             true ->
-              add_raw!(
-                normalize(obj, false, opts),
-                opts
-              )
+              document_to_insert = normalize(obj, false, opts)
+              resp = add_raw!(document_to_insert, opts)
+
+              document_to_insert
+              |> Map.merge(%{_id: resp.inserted_id})
+              |> structize(false)
 
             false ->
               raise "Not a valid obj"
@@ -519,13 +521,87 @@ defmodule Bongo.Model do
           )
         end
 
-        defp remove!(query, opts \\ []) do
+        defp find_one_and_update!(query, update, opts \\ []) do
+          find_one_and_update_raw!(
+            normalize(query, true, opts),
+            Enum.map(
+              update,
+              fn {k, v} ->
+                {k, normalize(v, true, opts)}
+              end
+            ),
+            opts
+          )
+        end
+
+        defp remove_one!(query, opts \\ []) do
+          remove_one_raw!(normalize(query, true, opts), opts)
+        end
+
+        defp remove_many!(query, opts \\ []) do
+          remove_many_raw!(normalize(query, true, opts), opts)
+        end
+
+        defp find_one_and_update_raw!(query, update, opts \\ []) do
+          Mongo.find_one_and_update(
+            @connection,
+            @collection_name,
+            query,
+            update,
+            @default_opts ++ opts
+          )
+        end
+
+        defp aggregate_raw!(pipelines, opts) do
+          Mongo.aggregate(
+            @connection,
+            @collection_name,
+            pipelines,
+            @default_opts ++ opts
+          )
+        end
+
+        defp remove_one_raw!(obj, opts \\ []) do
+          # todo check if it has an objectid and delete by it
+          Mongo.delete_one!(
+            @connection,
+            @collection_name,
+            obj,
+            @default_opts ++ opts
+          )
+        end
+
+        defp remove_many_raw!(query, opts \\ []) do
           Mongo.delete_many!(
             @connection,
             @collection_name,
             query,
             @default_opts ++ opts
           )
+        end
+
+        defp remove_all!(document_list, opts \\ [])
+             when is_list(document_list) do
+          ids =
+            document_list
+            |> Enum.map(& &1._id)
+            |> Bongo.Utilities.filter_nils()
+            |> Enum.map(&BSON.ObjectId.decode!(&1))
+
+          remove_many_raw!(
+            %{
+              _id: %{
+                "$in": ids
+              }
+            },
+            opts
+          )
+        end
+
+
+        #deprecated please use remove_one, remove_many or remove_all
+        defp remove!(query, opts \\ []) do
+          remove_many_raw!(query, opts)
         end
 
         defp find_one_raw(query \\ %{}, opts \\ []) do

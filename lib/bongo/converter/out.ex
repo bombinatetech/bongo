@@ -50,6 +50,24 @@ defmodule Bongo.Converter.Out do
   end
 
   def convert_out(value, :integer, _lenient) do
+    cond do
+      is_number(value) -> value
+      is_binary(value) -> case value
+                               |> to_string
+                               |> Integer.parse do
+                            {number, _extra} -> number
+                            :error -> value
+                          end
+      true -> case value
+                   |> inspect
+                   |> Integer.parse do
+                {number, _extra} -> number
+                :error -> value
+              end
+    end
+  end
+
+  def convert_out(%BSON.ObjectId{} = value, :objectId, _lenient) do
     value
   end
 
@@ -88,12 +106,12 @@ defmodule Bongo.Converter.Out do
     Enum.map(
       item,
       fn {k, v} ->
-        atom = String.to_atom(to_string(k))
-
+        atom = k
+               |> to_string
+               |> String.to_atom
         case Keyword.has_key?(out_types, atom) do
           true ->
             {k, convert_out(v, out_types[atom], lenient)}
-
           false ->
             {k, :blackhole}
         end
